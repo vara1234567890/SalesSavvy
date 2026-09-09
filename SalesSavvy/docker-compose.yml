@@ -1,0 +1,52 @@
+services:
+  mysqldb:
+    image: mysql:8.0
+    container_name: salessavvy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: salessavvy
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - salessavvy-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: salessavvy-backend
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/salessavvy?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      - mysqldb
+    networks:
+      - salessavvy-net
+
+  frontend:
+    build:
+      context: C:\Users\user\Downloads\SALESSAVVY-main\SALESSAVVY-main
+      dockerfile: Dockerfile
+    container_name: salessavvy-frontend
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+    networks:
+      - salessavvy-net
+
+volumes:
+  mysql_data:
+
+networks:
+  salessavvy-net:
+    driver: bridge
