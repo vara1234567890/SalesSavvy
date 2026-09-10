@@ -18,7 +18,6 @@ import com.example.demo.services.UserService;
 
 @RestController
 @RequestMapping("/api/users")
-// Explicitly allow Vite frontend origin
 @CrossOrigin(
     originPatterns = {
         "http://localhost:*",
@@ -26,7 +25,6 @@ import com.example.demo.services.UserService;
     },
     allowCredentials = "true"
 )
-public class UserController {
 public class UserController {
 
     private final UserService userService;
@@ -39,7 +37,6 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
         try {
-            // Map DTO to Entity
             User user = new User();
             user.setUsername(request.getUsername());
             user.setEmail(request.getEmail());
@@ -48,7 +45,6 @@ public class UserController {
 
             User registeredUser = userService.registerUser(user);
 
-            // Return safe response without password exposure
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "message", "User registered successfully",
                 "userId", registeredUser.getUserId(),
