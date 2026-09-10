@@ -19,7 +19,14 @@ import com.example.demo.services.UserService;
 @RestController
 @RequestMapping("/api/users")
 // Explicitly allow Vite frontend origin
-@CrossOrigin(origins = "http://localhost:5174") 
+@CrossOrigin(
+    originPatterns = {
+        "http://localhost:*",
+        "https://*.vercel.app"
+    },
+    allowCredentials = "true"
+)
+public class UserController {
 public class UserController {
 
     private final UserService userService;
