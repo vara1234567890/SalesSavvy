@@ -75,7 +75,7 @@ const AdminDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:9090/api/auth/logout", {
+      const res = await fetch("https://salessavvy-d7qc.onrender.com/api/auth/logout", {
         method: "POST",
         credentials: "include",
         headers: getHeaders(),
@@ -93,7 +93,7 @@ const AdminDashboard = () => {
     setModalType("overallBusiness");
     setResponse(null);
     try {
-      const res = await fetch("http://localhost:9090/admin/business/overall", {
+      const res = await fetch("https://salessavvy-d7qc.onrender.com/admin/business/overall", {
         method: "GET",
         credentials: "include",
         headers: getHeaders(),
@@ -127,7 +127,7 @@ const AdminDashboard = () => {
 
   const handleAddProductSubmit = async (productData) => {
     try {
-      const res = await fetch("http://localhost:9090/admin/products/add", {
+      const res = await fetch("https://salessavvy-d7qc.onrender.com/admin/products/add", {
         method: "POST",
         credentials: "include",
         headers: getHeaders(),
@@ -145,7 +145,7 @@ const AdminDashboard = () => {
 
   const handleDeleteProductSubmit = async ({ productId }) => {
     try {
-      const res = await fetch("http://localhost:9090/admin/products/delete", {
+      const res = await fetch("https://salessavvy-d7qc.onrender.com/admin/products/delete", {
         method: "DELETE",
         credentials: "include",
         headers: getHeaders(),
@@ -167,7 +167,7 @@ const AdminDashboard = () => {
 
   const handleViewUserSubmit = async ({ userId }) => {
     try {
-      const res = await fetch("http://localhost:9090/admin/user/getbyid", {
+      const res = await fetch("https://salessavvy-d7qc.onrender.com/admin/user/getbyid", {
         method: "POST",
         credentials: "include",
         headers: getHeaders(),
@@ -191,7 +191,7 @@ const AdminDashboard = () => {
   const handleMonthlyBusiness = async (data) => {
     try {
       const res = await fetch(
-        `http://localhost:9090/admin/business/monthly?month=${data?.month}&year=${data?.year}`,
+        `https://salessavvy-d7qc.onrender.com/admin/business/monthly?month=${data?.month}&year=${data?.year}`,
         {
           method: "GET",
           credentials: "include",
@@ -215,7 +215,7 @@ const AdminDashboard = () => {
   const handleDailyBusiness = async (data) => {
     try {
       const res = await fetch(
-        `http://localhost:9090/admin/business/daily?date=${data?.date}`,
+        `https://salessavvy-d7qc.onrender.com/admin/business/daily?date=${data?.date}`,
         {
           method: "GET",
           credentials: "include",
@@ -239,7 +239,7 @@ const AdminDashboard = () => {
   const handleYearlyBusiness = async (data) => {
     try {
       const res = await fetch(
-        `http://localhost:9090/admin/business/yearly?year=${data?.year}`,
+        `https://salessavvy-d7qc.onrender.com/admin/business/yearly?year=${data?.year}`,
         {
           method: "GET",
           credentials: "include",

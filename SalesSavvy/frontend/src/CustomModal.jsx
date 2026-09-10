@@ -380,7 +380,7 @@ const ModifyUserFormComponent = ({ onClose }) => {
     if (!userId) return;
 
     try {
-      const response = await fetch("http://localhost:9090/admin/user/getbyid", {
+      const response = await fetch("https://salessavvy-d7qc.onrender.com/admin/user/getbyid", {
         method: "POST",
         credentials: "include",
         headers: getHeaders(),
@@ -403,7 +403,7 @@ const ModifyUserFormComponent = ({ onClose }) => {
     const formData = new FormData(e.target);
 
     try {
-      const response = await fetch("http://localhost:9090/admin/user/modify", {
+      const response = await fetch("https://salessavvy-d7qc.onrender.com/admin/user/modify", {
         method: "PUT",
         credentials: "include",
         headers: getHeaders(),

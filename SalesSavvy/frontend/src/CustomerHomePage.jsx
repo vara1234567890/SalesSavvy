@@ -26,8 +26,8 @@ export default function CustomerHomePage() {
       setLoading(true);
       try {
         const url = selectedCategory
-          ? `http://localhost:9090/api/products?category=${encodeURIComponent(selectedCategory)}`
-          : `http://localhost:9090/api/products`;
+          ? `https://salessavvy-d7qc.onrender.com/api/products?category=${encodeURIComponent(selectedCategory)}`
+          : `https://salessavvy-d7qc.onrender.com/api/products`;
 
         const res = await fetch(url, {
           method: 'GET',
@@ -50,7 +50,7 @@ export default function CustomerHomePage() {
 
   // Initial cart count fetch
   useEffect(() => {
-    fetch(`http://localhost:9090/api/cart/items/count?username=${username}`, {
+    fetch(`https://salessavvy-d7qc.onrender.com/api/cart/items/count?username=${username}`, {
       credentials: 'include',
       headers: getHeaders(),
     })
@@ -61,7 +61,7 @@ export default function CustomerHomePage() {
 
   const handleAddToCart = async (productId) => {
     try {
-      const res = await fetch('http://localhost:9090/api/cart/add', {
+      const res = await fetch('https://salessavvy-d7qc.onrender.com/api/cart/add', {
         method: 'POST',
         credentials: 'include',
         headers: getHeaders(),

@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:9090', // Your backend URL
+        target: 'https://salessavvy-d7qc.onrender.com', // Your backend URL
         changeOrigin: true,
       },
     },

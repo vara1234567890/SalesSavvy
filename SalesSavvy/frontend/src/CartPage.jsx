@@ -16,7 +16,7 @@ const CartPage = () => {
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
-        const response = await fetch("http://localhost:9090/api/cart/items", {
+        const response = await fetch("https://salessavvy-d7qc.onrender.com/api/cart/items", {
           credentials: "include",
         });
 
@@ -61,7 +61,7 @@ const CartPage = () => {
     try {
       // Clear individual items or call clear endpoint
       for (const item of cartItems) {
-        await fetch("http://localhost:9090/api/cart/delete", {
+        await fetch("https://salessavvy-d7qc.onrender.com/api/cart/delete", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -76,7 +76,7 @@ const CartPage = () => {
   // Remove item
   const handleRemoveItem = async (productId) => {
     try {
-      const response = await fetch("http://localhost:9090/api/cart/delete", {
+      const response = await fetch("https://salessavvy-d7qc.onrender.com/api/cart/delete", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -101,7 +101,7 @@ const CartPage = () => {
         return;
       }
 
-      const response = await fetch("http://localhost:9090/api/cart/update", {
+      const response = await fetch("https://salessavvy-d7qc.onrender.com/api/cart/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -146,7 +146,7 @@ const CartPage = () => {
         })),
       };
 
-      const response = await fetch("http://localhost:9090/api/payment/create", {
+      const response = await fetch("https://salessavvy-d7qc.onrender.com/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -176,7 +176,7 @@ const CartPage = () => {
         order_id: razorpayOrderId,
         handler: async function (paymentResponse) {
           try {
-            const verifyResponse = await fetch("http://localhost:9090/api/payment/verify", {
+            const verifyResponse = await fetch("https://salessavvy-d7qc.onrender.com/api/payment/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               credentials: "include",

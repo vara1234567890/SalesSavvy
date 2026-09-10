@@ -18,7 +18,7 @@ export default function AdminLogin() {
     }
 
     try {
-      const response = await fetch("http://localhost:9090/api/auth/login", {
+      const response = await fetch("https://salessavvy-d7qc.onrender.com/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
