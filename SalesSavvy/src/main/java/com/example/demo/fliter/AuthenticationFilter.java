@@ -28,8 +28,6 @@ public class AuthenticationFilter implements Filter {
     private final AuthService authService;
     private final UserRepository userRepository;
 
-    private static final String ALLOWED_ORIGIN = "http://localhost:5174";
-
     public AuthenticationFilter(AuthService authService, UserRepository userRepository) {
         this.authService = authService;
         this.userRepository = userRepository;
@@ -42,8 +40,8 @@ public class AuthenticationFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        // Set CORS headers for ALL responses
-        setCORSHeaders(httpResponse);
+        // Set dynamic CORS headers based on the caller's origin
+        setCORSHeaders(httpRequest, httpResponse);
 
         // Handle preflight (OPTIONS) requests immediately
         if ("OPTIONS".equalsIgnoreCase(httpRequest.getMethod())) {
@@ -114,8 +112,11 @@ public class AuthenticationFilter implements Filter {
                 || requestURI.equals("/api/auth/register");
     }
 
-    private void setCORSHeaders(HttpServletResponse response) {
-        response.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+    private void setCORSHeaders(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader("Origin");
+        if (origin != null && (origin.contains("localhost") || origin.endsWith(".vercel.app"))) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+        }
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
         response.setHeader("Access-Control-Allow-Credentials", "true");
