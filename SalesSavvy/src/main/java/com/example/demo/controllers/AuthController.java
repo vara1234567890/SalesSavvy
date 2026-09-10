@@ -21,7 +21,13 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = ("http://localhost:5174"), allowCredentials = "true")
+@CrossOrigin(
+    originPatterns = {
+        "http://localhost:*",
+        "https://*.vercel.app"
+    },
+    allowCredentials = "true"
+)
 public class AuthController {
 
     private final AuthService authService;
@@ -36,21 +42,15 @@ public class AuthController {
             User user = authService.authenticate(loginRequest.getUsername(), loginRequest.getPassword());
             String token = authService.generateToken(user);
 
-            Cookie cookie = new Cookie("authToken", token);
-            cookie.setHttpOnly(true);
-            cookie.setSecure(false);
-            cookie.setPath("/");
-            cookie.setMaxAge(3600); // 1 hour
-            response.addCookie(cookie);
-
+            // Cross-origin cookies between Vercel and Render require SameSite=None and Secure
             response.addHeader("Set-Cookie",
-                    String.format("authToken=%s; HttpOnly; Path=/; Max-Age=3600; SameSite=Lax", token));
+                    String.format("authToken=%s; HttpOnly; Path=/; Max-Age=3600; SameSite=None; Secure", token));
 
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("message", "Login successful");
             responseBody.put("role", user.getRole());
             responseBody.put("username", user.getUsername());
-            responseBody.put("token", token); // Useful for Bearer headers
+            responseBody.put("token", token);
 
             return ResponseEntity.ok(responseBody);
         } catch (RuntimeException e) {
@@ -66,13 +66,7 @@ public class AuthController {
                 authService.logout(authenticatedUser);
             }
 
-            Cookie cookie = new Cookie("authToken", null);
-            cookie.setHttpOnly(true);
-            cookie.setMaxAge(0);
-            cookie.setPath("/");
-            response.addCookie(cookie);
-
-            response.addHeader("Set-Cookie", "authToken=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax");
+            response.addHeader("Set-Cookie", "authToken=; HttpOnly; Path=/; Max-Age=0; SameSite=None; Secure");
 
             return ResponseEntity.ok(Map.of("message", "Logout Success"));
         } catch (Exception e) {
