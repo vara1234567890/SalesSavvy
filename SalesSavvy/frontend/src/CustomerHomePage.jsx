@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { CategoryNavigation } from './CategoryNavigation';
@@ -7,18 +7,21 @@ import './assets/styles.css';
 
 export default function CustomerHomePage() {
   const [products, setProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('Shirts'); // Default to Shirts
+  const [selectedCategory, setSelectedCategory] = useState('Shirts');
   const [cartCount, setCartCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const username = localStorage.getItem('username') || 'Customer';
 
-  const getHeaders = () => {
-    const token = localStorage.getItem('token');
+  // Retrieve user & token reliably
+  const username = localStorage.getItem('username') || localStorage.getItem('user') || 'Customer';
+  const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+
+  const getHeaders = useCallback(() => {
+    const token = localStorage.getItem('token') || localStorage.getItem('jwtToken');
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
-  };
+  }, []);
 
   // Fetch products whenever selectedCategory changes
   useEffect(() => {
@@ -46,33 +49,53 @@ export default function CustomerHomePage() {
     };
 
     fetchProducts();
-  }, [selectedCategory]);
+  }, [selectedCategory, getHeaders]);
 
   // Initial cart count fetch
   useEffect(() => {
-    fetch(`https://salessavvy-d7qc.onrender.com/api/cart/items/count?username=${username}`, {
+    if (!username || username === 'Customer') return;
+
+    fetch(`https://salessavvy-d7qc.onrender.com/api/cart/items/count?username=${encodeURIComponent(username)}`, {
       credentials: 'include',
       headers: getHeaders(),
     })
       .then((res) => (res.ok ? res.json() : 0))
-      .then((count) => setCartCount(count))
+      .then((count) => setCartCount(Number(count) || 0))
       .catch(() => setCartCount(0));
-  }, [username]);
+  }, [username, getHeaders]);
 
   const handleAddToCart = async (productId) => {
     try {
+      // Include username / userId so the backend can map the cart item to the correct user
+      const requestPayload = {
+        productId: Number(productId),
+        quantity: 1,
+        username: username !== 'Customer' ? username : undefined,
+        ...(userId ? { userId: Number(userId) } : {}),
+      };
+
       const res = await fetch('https://salessavvy-d7qc.onrender.com/api/cart/add', {
         method: 'POST',
         credentials: 'include',
         headers: getHeaders(),
-        body: JSON.stringify({ productId, quantity: 1 }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (res.ok) {
         setCartCount((prev) => prev + 1);
+      } else {
+        const errText = await res.text();
+        console.error('Add to cart failed:', res.status, errText);
+
+        if (res.status === 401 || res.status === 403) {
+          alert('Session expired or unauthorized. Please sign in again.');
+        } else {
+          alert(`Could not add to cart: ${errText || 'Server error'}`);
+        }
       }
     } catch (err) {
       console.error('Error adding to cart:', err);
+      alert('Network error while adding to cart. Please check backend connection.');
     }
   };
 
