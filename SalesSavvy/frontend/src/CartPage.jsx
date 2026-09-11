@@ -8,15 +8,29 @@ const DEFAULT_FALLBACK_IMAGE = "https://images.unsplash.com/photo-1596755094514-
 
 const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(() => {
+    // Preserve username across page switches
+    return localStorage.getItem("username") || localStorage.getItem("user") || "";
+  });
   const [subtotal, setSubtotal] = useState(0);
   const navigate = useNavigate();
+
+  // Helper to get authorization headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("jwtToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
 
   // Fetch cart items on mount
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
         const response = await fetch("https://salessavvy-d7qc.onrender.com/api/cart/items", {
+          method: "GET",
+          headers: getAuthHeaders(),
           credentials: "include",
         });
 
@@ -39,7 +53,10 @@ const CartPage = () => {
             imageUrl: item.image_url || item.imageUrl || DEFAULT_FALLBACK_IMAGE,
           })) || []
         );
-        setUsername(data?.username || "");
+        
+        if (data?.username) {
+          setUsername(data.username);
+        }
       } catch (error) {
         console.error("Error fetching cart items:", error);
       }
@@ -59,11 +76,10 @@ const CartPage = () => {
   // Clear cart after checkout
   const clearCartOnBackend = async () => {
     try {
-      // Clear individual items or call clear endpoint
       for (const item of cartItems) {
         await fetch("https://salessavvy-d7qc.onrender.com/api/cart/delete", {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders(),
           credentials: "include",
           body: JSON.stringify({ productId: item.productId }),
         });
@@ -78,7 +94,7 @@ const CartPage = () => {
     try {
       const response = await fetch("https://salessavvy-d7qc.onrender.com/api/cart/delete", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         credentials: "include",
         body: JSON.stringify({ productId }),
       });
@@ -103,7 +119,7 @@ const CartPage = () => {
 
       const response = await fetch("https://salessavvy-d7qc.onrender.com/api/cart/update", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         credentials: "include",
         body: JSON.stringify({ productId, quantity: newQuantity }),
       });
@@ -148,7 +164,7 @@ const CartPage = () => {
 
       const response = await fetch("https://salessavvy-d7qc.onrender.com/api/payment/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         credentials: "include",
         body: JSON.stringify(requestBody),
       });
@@ -178,7 +194,7 @@ const CartPage = () => {
           try {
             const verifyResponse = await fetch("https://salessavvy-d7qc.onrender.com/api/payment/verify", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: getAuthHeaders(),
               credentials: "include",
               body: JSON.stringify({
                 razorpayOrderId: paymentResponse.razorpay_order_id,
@@ -188,13 +204,9 @@ const CartPage = () => {
             });
 
             if (verifyResponse.ok) {
-              // 1. Clear cart on backend
               await clearCartOnBackend();
-
-              // 2. Clear frontend cart state
               setCartItems([]);
               setSubtotal(0);
-
               alert("Payment verified successfully! Your order has been placed.");
               navigate("/customerhome");
             } else {
