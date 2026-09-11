@@ -33,10 +33,29 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("username", data.username || username);
-        if (data.token) localStorage.setItem("token", data.token);
-        if (data.role) localStorage.setItem("role", data.role);
+        // 1. Detect and save JWT token from any common backend field name
+        const authToken =
+          data.token ||
+          data.jwt ||
+          data.jwtToken ||
+          data.accessToken ||
+          data?.data?.token;
 
+        if (authToken) {
+          localStorage.setItem("token", authToken);
+          localStorage.setItem("jwtToken", authToken);
+        }
+
+        // 2. Save user details
+        localStorage.setItem("username", data.username || username);
+        if (data.userId || data.id || data.user_id) {
+          localStorage.setItem("userId", data.userId || data.id || data.user_id);
+        }
+        if (data.role) {
+          localStorage.setItem("role", data.role);
+        }
+
+        // 3. Route according to role
         if (data.role === "ADMIN") {
           navigate("/admindashboard");
         } else {
