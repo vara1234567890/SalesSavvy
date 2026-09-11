@@ -11,7 +11,7 @@ export default function OrdersPage() {
   const [cartError, setCartError] = useState(false);
   const [isCartLoading, setIsCartLoading] = useState(true);
 
-  // Initialize directly from localStorage so header never defaults to Guest
+  // Initialize directly from localStorage to preserve username across navigation
   const [username, setUsername] = useState(() => {
     return localStorage.getItem('username') || '';
   });
@@ -44,7 +44,7 @@ export default function OrdersPage() {
 
       const data = await response.json();
 
-      // Handle both { products: [...] } and flat array responses
+      // Handle array or object wrapper (products/orders)
       const orderList = Array.isArray(data)
         ? data
         : data.products || data.orders || [];
@@ -129,10 +129,12 @@ export default function OrdersPage() {
               {orders.map((order, index) => {
                 const orderId = order.order_id || order.orderId || order.id || 'N/A';
                 const pricePerUnit = Number(order.price_per_unit || order.price || 0);
-                const totalPrice = Number(order.total_price || order.totalAmount || pricePerUnit * (order.quantity || 1));
+                const totalPrice = Number(
+                  order.total_price || order.totalAmount || pricePerUnit * (order.quantity || 1)
+                );
 
                 return (
-                  <div key={orderId + '-' + index} className="order-card">
+                  <div key={`${orderId}-${index}`} className="order-card">
                     <div className="order-card-header">
                       <h3>Order Id : {orderId}</h3>
                     </div>
@@ -144,13 +146,14 @@ export default function OrdersPage() {
                           className="order-product-image"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src =
-                              'https://placehold.co/250x250/png?text=No+Image';
+                            e.target.src = 'https://placehold.co/250x250/png?text=No+Image';
                           }}
                         />
                       )}
                       <div className="order-details">
-                        <h3 className="product-name">Product Name : {order.name || 'Purchased Item'}</h3>
+                        <h3 className="product-name">
+                          Product Name : {order.name || 'Purchased Item'}
+                        </h3>
                         {order.description && <h3>Description : {order.description}</h3>}
                         <h3>Quantity : {order.quantity || 1}</h3>
                         <h3>Price per Unit : ₹{pricePerUnit.toFixed(2)}</h3>
