@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import com.example.demo.entities.User;
 import com.example.demo.repositories.UserRepository;
@@ -36,7 +37,7 @@ public class AuthenticationFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        
+
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
@@ -75,8 +76,9 @@ public class AuthenticationFilter implements Filter {
             return;
         }
 
-        // Extract and validate the token
-        String token = getAuthTokenFromCookies(httpRequest);
+        // Extract token from Header (Bearer token) or Cookies (Fallback)
+        String token = extractToken(httpRequest);
+
         if (token == null || !authService.validateToken(token)) {
             sendErrorResponse(httpResponse, HttpServletResponse.SC_UNAUTHORIZED, "{\"error\": \"Unauthorized: Invalid or missing token\"}");
             return;
@@ -129,7 +131,18 @@ public class AuthenticationFilter implements Filter {
         response.getWriter().write(jsonMessage);
     }
 
-    private String getAuthTokenFromCookies(HttpServletRequest request) {
+    /**
+     * Extracts token primarily from Authorization header (Bearer token),
+     * and falls back to HTTP cookies.
+     */
+    private String extractToken(HttpServletRequest request) {
+        // 1. Check Authorization: Bearer <token>
+        String authHeader = request.getHeader("Authorization");
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
+
+        // 2. Fallback to Cookie
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             return Arrays.stream(cookies)
@@ -138,6 +151,7 @@ public class AuthenticationFilter implements Filter {
                     .findFirst()
                     .orElse(null);
         }
+
         return null;
     }
 }
