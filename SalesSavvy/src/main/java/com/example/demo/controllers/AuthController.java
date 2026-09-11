@@ -15,7 +15,6 @@ import com.example.demo.dto.LoginRequest;
 import com.example.demo.entities.User;
 import com.example.demo.services.AuthService;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -42,7 +41,7 @@ public class AuthController {
             User user = authService.authenticate(loginRequest.getUsername(), loginRequest.getPassword());
             String token = authService.generateToken(user);
 
-            // Cross-origin cookies between Vercel and Render require SameSite=None and Secure
+            // Set cookie for browsers supporting third-party cookies
             response.addHeader("Set-Cookie",
                     String.format("authToken=%s; HttpOnly; Path=/; Max-Age=3600; SameSite=None; Secure", token));
 
@@ -50,6 +49,7 @@ public class AuthController {
             responseBody.put("message", "Login successful");
             responseBody.put("role", user.getRole());
             responseBody.put("username", user.getUsername());
+            responseBody.put("userId", user.getUserId()); // Critical for cart mapping
             responseBody.put("token", token);
 
             return ResponseEntity.ok(responseBody);
@@ -66,11 +66,12 @@ public class AuthController {
                 authService.logout(authenticatedUser);
             }
 
+            // Invalidate cookie
             response.addHeader("Set-Cookie", "authToken=; HttpOnly; Path=/; Max-Age=0; SameSite=None; Secure");
 
             return ResponseEntity.ok(Map.of("message", "Logout Success"));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", e.getMessage())); 
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage())); 
         }
     }
 }
