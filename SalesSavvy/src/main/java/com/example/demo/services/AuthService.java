@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,6 +19,8 @@ import com.example.demo.entities.User;
 import com.example.demo.repositories.JWTTokenRepository;
 import com.example.demo.repositories.UserRepository;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -24,12 +28,14 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class AuthService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
     private final Key signingKey;
     private final UserRepository userRepository;
     private final JWTTokenRepository jwtTokenRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    private static final long EXPIRATION_TIME_MS = 3600000; // 1 Hour
+    private static final long EXPIRATION_TIME_MS = 24 * 3600 * 1000; // 24 Hours for stable sessions
 
     @Autowired
     public AuthService(UserRepository userRepository, 
@@ -39,10 +45,11 @@ public class AuthService {
         this.jwtTokenRepository = jwtTokenRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
 
-        if (jwtSecret.getBytes(StandardCharsets.UTF_8).length < 64) {
+        byte[] secretBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < 64) {
             throw new IllegalArgumentException("JWT_SECRET must be at least 64 bytes long for HS512.");
         }
-        this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        this.signingKey = Keys.hmacShaKeyFor(secretBytes);
     }
 
     public User authenticate(String username, String password) {
@@ -57,15 +64,15 @@ public class AuthService {
 
     @Transactional
     public String generateToken(User user) {
-        LocalDateTime now = LocalDateTime.now();
-        JWTToken existingToken = jwtTokenRepository.findByUserId(user.getUserId());
-
-        if (existingToken != null && now.isBefore(existingToken.getExpiresAt())) {
-            return existingToken.getToken();
-        }
-
-        if (existingToken != null) {
-            jwtTokenRepository.delete(existingToken);
+        // Clean up any old tokens for this user first
+        try {
+            JWTToken existingToken = jwtTokenRepository.findByUserId(user.getUserId());
+            if (existingToken != null) {
+                jwtTokenRepository.delete(existingToken);
+                jwtTokenRepository.flush();
+            }
+        } catch (Exception e) {
+            logger.warn("Could not clean old token: {}", e.getMessage());
         }
 
         String token = generateNewToken(user);
@@ -74,30 +81,41 @@ public class AuthService {
     }
 
     private String generateNewToken(User user) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME_MS);
+
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS))
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
                 .signWith(signingKey, SignatureAlgorithm.HS512)
                 .compact();
     }
 
     public void saveToken(User user, String token) {
-        JWTToken jwtToken = new JWTToken(user, token, LocalDateTime.now().plusHours(1));
+        // 24-hour expiration mapped to DB record
+        JWTToken jwtToken = new JWTToken(user, token, LocalDateTime.now().plusHours(24));
         jwtTokenRepository.save(jwtToken);
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
+            // 1. Verify cryptographic signature and expiration via JJWT
+            Claims claims = Jwts.parserBuilder()
                 .setSigningKey(signingKey)
                 .build()
-                .parseClaimsJws(token);
+                .parseClaimsJws(token)
+                .getBody();
 
+            // 2. Check if token exists in DB (ensures it wasn't logged out / revoked)
             Optional<JWTToken> jwtToken = jwtTokenRepository.findByToken(token);
-            return jwtToken.isPresent() && jwtToken.get().getExpiresAt().isAfter(LocalDateTime.now());
+            return jwtToken.isPresent();
+        } catch (ExpiredJwtException e) {
+            logger.warn("JWT token has expired: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
+            logger.error("Token validation error: {}", e.getMessage());
             return false;
         }
     }
@@ -113,9 +131,13 @@ public class AuthService {
 
     @Transactional
     public void logout(User authenticatedUser) {
-        JWTToken token = jwtTokenRepository.findByUserId(authenticatedUser.getUserId());
-        if (token != null) {
-            jwtTokenRepository.delete(token);
+        try {
+            JWTToken token = jwtTokenRepository.findByUserId(authenticatedUser.getUserId());
+            if (token != null) {
+                jwtTokenRepository.delete(token);
+            }
+        } catch (Exception e) {
+            logger.error("Error during logout token deletion: {}", e.getMessage());
         }
     }
 }
