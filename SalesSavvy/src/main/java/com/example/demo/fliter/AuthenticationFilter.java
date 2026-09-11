@@ -72,6 +72,14 @@ public class AuthenticationFilter implements Filter {
 
         // Allow public/guest endpoints
         if (isPublicPath(requestURI)) {
+            // Optional: attach user to request if token is present during logout
+            String token = extractToken(httpRequest);
+            if (token != null && authService.validateToken(token)) {
+                String username = authService.extractUsername(token);
+                userRepository.findByUsername(username).ifPresent(user -> 
+                    httpRequest.setAttribute("authenticatedUser", user)
+                );
+            }
             chain.doFilter(httpRequest, httpResponse);
             return;
         }
@@ -110,6 +118,7 @@ public class AuthenticationFilter implements Filter {
         return requestURI.startsWith("/api/products")
                 || requestURI.startsWith("/api/categories")
                 || requestURI.startsWith("/api/auth/login")
+                || requestURI.startsWith("/api/auth/logout")   // <-- Allows logout to proceed without 401
                 || requestURI.startsWith("/api/users/register")
                 || requestURI.equals("/api/auth/register");
     }
@@ -131,10 +140,6 @@ public class AuthenticationFilter implements Filter {
         response.getWriter().write(jsonMessage);
     }
 
-    /**
-     * Extracts token primarily from Authorization header (Bearer token),
-     * and falls back to HTTP cookies.
-     */
     private String extractToken(HttpServletRequest request) {
         // 1. Check Authorization: Bearer <token>
         String authHeader = request.getHeader("Authorization");
