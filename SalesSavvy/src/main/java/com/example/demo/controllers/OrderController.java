@@ -33,7 +33,6 @@ public class OrderController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> getOrdersForUser(HttpServletRequest request) {
         try {
-            // Fixed typo: was "autheneticatedUser", now matches AuthenticationFilter
             User authenticatedUser = (User) request.getAttribute("authenticatedUser");
 
             if (authenticatedUser == null) {
@@ -41,7 +40,6 @@ public class OrderController {
             }
 
             Map<String, Object> response = orderService.getOrdersForUser(authenticatedUser);
-
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
